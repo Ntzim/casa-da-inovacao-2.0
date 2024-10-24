@@ -5,7 +5,7 @@ from io import BytesIO
 
 # Inicializar lista global de sorteados na session_state
 if 'sorteados_geral' not in st.session_state:
-    st.session_state.sorteados_geral = pd.DataFrame(columns=['Name', 'ID','Cota'])
+    st.session_state.sorteados_geral = pd.DataFrame(columns=['Name', 'ID', 'Cota'])
 
 # Função para realizar sorteio por grupo
 def realizar_sorteio_por_grupo(df, quantidade_por_grupo, curso):
@@ -70,9 +70,9 @@ def realizar_sorteio_por_grupo(df, quantidade_por_grupo, curso):
     ganhadores_df = pd.concat(ganhadores_por_grupo.values())
 
     # Adiciona os ganhadores à lista global de sorteados
-    ganhadores_df = ganhadores_df[['Name', 'ID','Cota']]
+    ganhadores_df = ganhadores_df[['Name', 'ID', 'Cota']]
     ganhadores_df['Curso'] = curso
-    st.session_state.sorteados_geral = pd.concat([st.session_state.sorteados_geral, ganhadores_df[['Name', 'ID','Cota']]])
+    st.session_state.sorteados_geral = pd.concat([st.session_state.sorteados_geral, ganhadores_df[['Name', 'ID', 'Cota']]])
     
     return ganhadores_df
 
@@ -87,7 +87,7 @@ def baixar_excel(df, filename):
 
 # Configuração da aplicação
 st.title("Sorteio Edital | Casa da Inovação")
-st.image('casa-da-inovacao-2.0/imagens/ID_CASA_INOVACAO -2.png')
+st.image('../ID_CASA_INOVACAO -2.png')
 
 # Seletores de curso
 curso_selecionado = st.selectbox("Selecione o curso", [
@@ -112,15 +112,19 @@ if uploaded_file is not None:
     # Leitura do arquivo Excel
     df = pd.read_excel(uploaded_file)
     
-    # Verifica se algum candidato já foi sorteado
-    # Verifica se algum candidato já foi sorteado (somente por 'Name' e 'ID')
-    candidatos_ja_sorteados = df.merge(st.session_state.sorteados_geral[['Name', 'ID']], on=['Name', 'ID'], how='inner')
-    df = df[~df[['Name', 'ID']].isin(candidatos_ja_sorteados[['Name', 'ID']].to_dict('list')).all(axis=1)]
+    # Verifica se algum candidato já foi sorteado (apenas pelo ID)
+    candidatos_ja_sorteados = df[df['ID'].isin(st.session_state.sorteados_geral['ID'])]
 
-    
+    # Remove os candidatos já sorteados do DataFrame original
+    df = df[~df['ID'].isin(candidatos_ja_sorteados['ID'])]
+
     # Exibe aviso se algum candidato foi removido
     if not candidatos_ja_sorteados.empty:
-        st.warning(f"Os seguintes candidatos já foram sorteados anteriormente e foram removidos deste sorteio:\n{candidatos_ja_sorteados[['Name', 'ID','Cota']].to_string(index=False)}")
+        # Cria uma lista formatada apenas com os IDs dos candidatos
+        lista_candidatos = "\n".join([f"ID: {row['ID']}, Nome: {row['Name']}" for index, row in candidatos_ja_sorteados.iterrows()])
+        
+        # Exibe o aviso com os candidatos em linhas separadas
+        st.warning(f"Os seguintes candidatos já foram sorteados anteriormente e foram removidos deste sorteio:\n{lista_candidatos}")
     
     # Mostrar os primeiros registros do arquivo carregado
     st.write(f"Primeiros registros do arquivo ({curso_selecionado}):")
@@ -168,9 +172,4 @@ if uploaded_file is not None:
 if curso_selecionado == 'Marketing Digital | Noite':
     if st.button("Finalizar Sorteios e Baixar Lista Geral de Sorteados"):
         excel_data = baixar_excel(st.session_state.sorteados_geral, 'sorteados_geral.xlsx')
-        st.download_button(
-            label="Baixar lista geral de sorteados",
-            data=excel_data,
-            file_name='sorteados_geral.xlsx',
-            mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-        )
+       
