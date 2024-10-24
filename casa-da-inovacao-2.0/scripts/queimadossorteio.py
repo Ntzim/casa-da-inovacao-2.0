@@ -5,20 +5,20 @@ from io import BytesIO
 
 # Inicializar lista global de sorteados na session_state
 if 'sorteados_geral' not in st.session_state:
-    st.session_state.sorteados_geral = pd.DataFrame(columns=['Name', 'ID'])
+    st.session_state.sorteados_geral = pd.DataFrame(columns=['Name', 'ID','Cota'])
 
 # Função para realizar sorteio por grupo
 def realizar_sorteio_por_grupo(df, quantidade_por_grupo, curso):
     ganhadores_por_grupo = {}
-    
+
     # Filtra para ampla concorrência
-    df_ampla_concorrencia = df[df['Ampla Concorrência'] == True]
-    
+    df_ampla_concorrencia = df[df['Cota'] == 'Ampla Concorrência']
+
     for grupo in quantidade_por_grupo.keys():
         if grupo == 'Ampla Concorrência':
             continue  # Deixamos o sorteio de ampla concorrência por último
         
-        df_grupo = df[df[grupo] == True]
+        df_grupo = df[df['Cota'] == grupo]
         total_grupo = len(df_grupo)
         
         if total_grupo > 0:
@@ -70,11 +70,12 @@ def realizar_sorteio_por_grupo(df, quantidade_por_grupo, curso):
     ganhadores_df = pd.concat(ganhadores_por_grupo.values())
 
     # Adiciona os ganhadores à lista global de sorteados
-    ganhadores_df = ganhadores_df[['Name', 'ID']]
+    ganhadores_df = ganhadores_df[['Name', 'ID','Cota']]
     ganhadores_df['Curso'] = curso
-    st.session_state.sorteados_geral = pd.concat([st.session_state.sorteados_geral, ganhadores_df[['Name', 'ID']]])
+    st.session_state.sorteados_geral = pd.concat([st.session_state.sorteados_geral, ganhadores_df[['Name', 'ID','Cota']]])
     
     return ganhadores_df
+
 
 # Função para baixar o arquivo Excel
 def baixar_excel(df, filename):
@@ -86,7 +87,7 @@ def baixar_excel(df, filename):
 
 # Configuração da aplicação
 st.title("Sorteio Edital | Casa da Inovação")
-st.image('casa-da-inovacao-2.0/imagens/ID_CASA_INOVACAO -2.png')
+st.image('../ID_CASA_INOVACAO -2.png')
 
 # Seletores de curso
 curso_selecionado = st.selectbox("Selecione o curso", [
@@ -112,12 +113,14 @@ if uploaded_file is not None:
     df = pd.read_excel(uploaded_file)
     
     # Verifica se algum candidato já foi sorteado
+    # Verifica se algum candidato já foi sorteado (somente por 'Name' e 'ID')
     candidatos_ja_sorteados = df.merge(st.session_state.sorteados_geral[['Name', 'ID']], on=['Name', 'ID'], how='inner')
     df = df[~df[['Name', 'ID']].isin(candidatos_ja_sorteados[['Name', 'ID']].to_dict('list')).all(axis=1)]
+
     
     # Exibe aviso se algum candidato foi removido
     if not candidatos_ja_sorteados.empty:
-        st.warning(f"Os seguintes candidatos já foram sorteados anteriormente e foram removidos deste sorteio:\n{candidatos_ja_sorteados[['Name', 'ID']].to_string(index=False)}")
+        st.warning(f"Os seguintes candidatos já foram sorteados anteriormente e foram removidos deste sorteio:\n{candidatos_ja_sorteados[['Name', 'ID','Cota']].to_string(index=False)}")
     
     # Mostrar os primeiros registros do arquivo carregado
     st.write(f"Primeiros registros do arquivo ({curso_selecionado}):")
