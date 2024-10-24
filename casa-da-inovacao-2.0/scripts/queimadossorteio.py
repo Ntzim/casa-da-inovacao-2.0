@@ -87,7 +87,7 @@ def baixar_excel(df, filename):
 
 # Configuração da aplicação
 st.title("Sorteio Edital | Casa da Inovação")
-st.image('../ID_CASA_INOVACAO -2.png')
+st.image('casa-da-inovacao-2.0/imagens/ID_CASA_INOVACAO -2.png')
 
 # Seletores de curso
 curso_selecionado = st.selectbox("Selecione o curso", [
