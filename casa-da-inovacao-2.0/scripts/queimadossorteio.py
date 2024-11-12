@@ -29,25 +29,27 @@ def realizar_sorteio_por_grupo(df, quantidade_por_grupo, curso):
             ganhadores = df_grupo.sample(n=quantidade_real, random_state=random.randint(0, 10000))
             
             # Preenche com ampla concorrência se faltarem vagas
-            if quantidade_real < quantidade:
+            if quantidade_real < quantidade and not df_ampla_concorrencia.empty:
                 vagas_restantes = quantidade - quantidade_real
-                ganhadores_extra = df_ampla_concorrencia.sample(n=vagas_restantes, random_state=random.randint(0, 10000))
+                ganhadores_extra = df_ampla_concorrencia.sample(n=min(vagas_restantes, len(df_ampla_concorrencia)), random_state=random.randint(0, 10000))
                 df_ampla_concorrencia = df_ampla_concorrencia.drop(ganhadores_extra.index)
                 ganhadores = pd.concat([ganhadores, ganhadores_extra])
             
             ganhadores_por_grupo[grupo] = ganhadores
         else:
             st.warning(f"Não há candidatos no grupo '{grupo}'. Vagas preenchidas pela ampla concorrência.")
-            ganhadores_extra = df_ampla_concorrencia.sample(n=quantidade, random_state=random.randint(0, 10000))
-            df_ampla_concorrencia = df_ampla_concorrencia.drop(ganhadores_extra.index)
-            ganhadores_por_grupo[grupo] = ganhadores_extra
+            if not df_ampla_concorrencia.empty:
+                ganhadores_extra = df_ampla_concorrencia.sample(n=min(quantidade, len(df_ampla_concorrencia)), random_state=random.randint(0, 10000))
+                df_ampla_concorrencia = df_ampla_concorrencia.drop(ganhadores_extra.index)
+                ganhadores_por_grupo[grupo] = ganhadores_extra
     
     # Sorteio de ampla concorrência com as vagas restantes
     total_ampla_concorrencia = len(df_ampla_concorrencia)
     quantidade_ampla = quantidade_por_grupo['Ampla Concorrência']
     quantidade_real = min(quantidade_ampla, total_ampla_concorrencia)
-    ganhadores_ampla = df_ampla_concorrencia.sample(n=quantidade_real, random_state=random.randint(0, 10000))
-    ganhadores_por_grupo['Ampla Concorrência'] = ganhadores_ampla
+    if total_ampla_concorrencia > 0:
+        ganhadores_ampla = df_ampla_concorrencia.sample(n=quantidade_real, random_state=random.randint(0, 10000))
+        ganhadores_por_grupo['Ampla Concorrência'] = ganhadores_ampla
     
     # Verificação final para garantir a quantidade exata de sorteados por grupo
     ganhadores_df = pd.concat(ganhadores_por_grupo.values()).drop_duplicates(subset=['ID'])
@@ -58,7 +60,7 @@ def realizar_sorteio_por_grupo(df, quantidade_por_grupo, curso):
         candidatos_restantes = df[~df['ID'].isin(ganhadores_df['ID'])]
         
         if not candidatos_restantes.empty:
-            ganhadores_extra = candidatos_restantes.sample(n=vagas_faltantes, random_state=random.randint(0, 10000))
+            ganhadores_extra = candidatos_restantes.sample(n=min(vagas_faltantes, len(candidatos_restantes)), random_state=random.randint(0, 10000))
             ganhadores_df = pd.concat([ganhadores_df, ganhadores_extra])
         else:
             st.warning("Não há candidatos suficientes para completar o sorteio com 27 ganhadores.")
@@ -79,22 +81,22 @@ def baixar_excel(df, filename):
 
 # Configuração da aplicação
 st.title("Sorteio Edital | Casa da Inovação")
-st.image('casa-da-inovacao-2.0/imagens/ID_CASA_INOVACAO 1.png')
+st.image('')
 
 # Seletores de curso
 curso_selecionado = st.selectbox("Selecione o curso", [
-    'Criação de Aplicativos | Manhã',
-    'Programação de Games | Teens | Manhã',
-    'Introdução à Robótica | Kids | Manhã',
-    'Inclusão Digital | +50 anos | Manhã',
-    'Criação de Aplicativos | Tarde',
-    'Programação de Games | Teens | Tarde',
-    'Programação de Games | Kids | Tarde',
-    'Digital Influencer | Tarde',
-    'Introdução à Robótica | Kids | Tarde',
-    'Introdução à Robótica | Teens | Tarde',
-    'Introdução ao Mundo Digital e Pacote Office | Noite',
-    'Marketing Digital | Noite',
+    'INCLUSÃO DIGITAL 50+  | Manhã',
+    'CRIAÇÃO DE GAMES KIDS | Manhã',
+    'INTRODUÇÃO À ROBÓTICA KIDS | Manhã',
+    'INTRODUÇÃO À ROBÓTICA TEENS  | Manhã',
+    'CRIAÇÃO DE APLICATIVOS | Tarde',
+    'CRIAÇÃO DE GAMES KIDS| Tarde',
+    'DIGITAL INFLUENCER| Tarde',
+    'CRIAÇÃO DE GAMES TEEENS | Tarde',
+    'INTRODUÇÃO À ROBÓTICA KIDS| Tarde',
+    'CRIAÇÃO DE APLICATIVOS 18+| Tarde',
+    'INTRODUÇÃO AO MUNDO DIGITAL E PACOTE OFFICE | Noite',
+    'MARKETING DIGITAL | Noite',
 ])
 
 # Upload do arquivo Excel
@@ -147,12 +149,11 @@ if uploaded_file is not None:
             st.warning("Nenhum ganhador foi selecionado. Verifique se há candidatos nos grupos especificados.")
     
     # Botão para baixar a lista geral de sorteados
-
     if st.button("Finalizar Sorteios e Baixar Lista Geral de Sorteados"):
-            excel_data_geral = baixar_excel(st.session_state.sorteados_geral, 'sorteados_geral.xlsx')
-            st.download_button(
-                label="Baixar lista geral de sorteados",
-                data=excel_data_geral,
-                file_name='sorteados_geral.xlsx',
-                mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-            )
+        excel_data_geral = baixar_excel(st.session_state.sorteados_geral, 'sorteados_geral.xlsx')
+        st.download_button(
+            label="Baixar lista geral de sorteados",
+            data=excel_data_geral,
+            file_name='sorteados_geral.xlsx',
+            mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        )
