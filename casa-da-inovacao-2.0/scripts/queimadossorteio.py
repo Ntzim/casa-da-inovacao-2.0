@@ -14,13 +14,14 @@ def realizar_sorteio_por_grupo(df, quantidade_por_grupo, curso):
     # Remover candidatos já sorteados em qualquer curso
     df = df[~df['ID'].isin(st.session_state.sorteados_geral['ID'])]
     
-    # Filtra para ampla concorrência
-    df_ampla_concorrencia = df[df['Cota'] == 'Ampla Concorrência']
+    # Separar candidatos da ampla concorrência
+    df_ampla_concorrencia = df[df['Cota'] == 'Ampla concorrência']
     
+    # Sortear para cada grupo exceto a ampla concorrência
     for grupo, quantidade in quantidade_por_grupo.items():
-        if grupo == 'Ampla Concorrência':
-            continue  # Deixamos o sorteio de ampla concorrência para o final
-        
+        if grupo == 'Ampla concorrência':
+            continue  # Sortearemos a ampla concorrência por último
+            
         df_grupo = df[df['Cota'] == grupo]
         total_grupo = len(df_grupo)
         
@@ -28,7 +29,7 @@ def realizar_sorteio_por_grupo(df, quantidade_por_grupo, curso):
             quantidade_real = min(quantidade, total_grupo)
             ganhadores = df_grupo.sample(n=quantidade_real, random_state=random.randint(0, 10000))
             
-            # Preenche com ampla concorrência se faltarem vagas
+            # Preencher vagas restantes com ampla concorrência, se necessário
             if quantidade_real < quantidade and not df_ampla_concorrencia.empty:
                 vagas_restantes = quantidade - quantidade_real
                 ganhadores_extra = df_ampla_concorrencia.sample(n=min(vagas_restantes, len(df_ampla_concorrencia)), random_state=random.randint(0, 10000))
@@ -37,24 +38,26 @@ def realizar_sorteio_por_grupo(df, quantidade_por_grupo, curso):
             
             ganhadores_por_grupo[grupo] = ganhadores
         else:
+            # Preencher com ampla concorrência caso o grupo esteja vazio
             st.warning(f"Não há candidatos no grupo '{grupo}'. Vagas preenchidas pela ampla concorrência.")
             if not df_ampla_concorrencia.empty:
                 ganhadores_extra = df_ampla_concorrencia.sample(n=min(quantidade, len(df_ampla_concorrencia)), random_state=random.randint(0, 10000))
                 df_ampla_concorrencia = df_ampla_concorrencia.drop(ganhadores_extra.index)
                 ganhadores_por_grupo[grupo] = ganhadores_extra
-    
-    # Sorteio de ampla concorrência com as vagas restantes
+
+    # Sorteio para ampla concorrência para as vagas restantes
     total_ampla_concorrencia = len(df_ampla_concorrencia)
-    quantidade_ampla = quantidade_por_grupo['Ampla Concorrência']
+    quantidade_ampla = quantidade_por_grupo['Ampla concorrência']
     quantidade_real = min(quantidade_ampla, total_ampla_concorrencia)
+    
     if total_ampla_concorrencia > 0:
         ganhadores_ampla = df_ampla_concorrencia.sample(n=quantidade_real, random_state=random.randint(0, 10000))
-        ganhadores_por_grupo['Ampla Concorrência'] = ganhadores_ampla
-    
-    # Verificação final para garantir a quantidade exata de sorteados por grupo
+        ganhadores_por_grupo['Ampla concorrência'] = ganhadores_ampla
+
+    # Unir os sorteados de todos os grupos
     ganhadores_df = pd.concat(ganhadores_por_grupo.values()).drop_duplicates(subset=['ID'])
     
-    # Verificar e preencher vagas restantes se o total for inferior a 27
+    # Garantir que temos exatamente 27 sorteados preenchendo vagas restantes, se necessário
     vagas_faltantes = 27 - len(ganhadores_df)
     if vagas_faltantes > 0:
         candidatos_restantes = df[~df['ID'].isin(ganhadores_df['ID'])]
@@ -65,7 +68,7 @@ def realizar_sorteio_por_grupo(df, quantidade_por_grupo, curso):
         else:
             st.warning("Não há candidatos suficientes para completar o sorteio com 27 ganhadores.")
 
-    # Adiciona os ganhadores à lista global de sorteados
+    # Adicionar ganhadores à lista global de sorteados
     ganhadores_df['Curso'] = curso
     st.session_state.sorteados_geral = pd.concat([st.session_state.sorteados_geral, ganhadores_df[['Name', 'ID', 'Cota', 'Curso']]]).drop_duplicates(subset=['ID'])
     
@@ -81,7 +84,7 @@ def baixar_excel(df, filename):
 
 # Configuração da aplicação
 st.title("Sorteio Edital | Casa da Inovação")
-st.image('casa-da-inovacao-2.0/imagens/ID_CASA_INOVACAO -2.png')
+st.image(r'C:\Users\Besouro\Documents\scripts\casa-da-inovacao-2.0\casa-da-inovacao-2.0\imagens\ID_CASA_INOVACAO 1.png')
 
 # Seletores de curso
 curso_selecionado = st.selectbox("Selecione o curso", [
@@ -122,7 +125,7 @@ if uploaded_file is not None:
 
     # Definição das quantidades de vagas por grupo
     quantidade_por_grupo = {
-            'Ampla Concorrência': 15,
+            'Ampla concorrência': 15,
             'Negro ou Pardo': 3,
             'Pessoa com deficiência - PCD': 3,
             'Estudante de escola pública': 3,
