@@ -8,71 +8,60 @@ if 'sorteados_geral' not in st.session_state:
     st.session_state.sorteados_geral = pd.DataFrame(columns=['Name', 'ID', 'Cota'])
 
 # Função para realizar sorteio por grupo com verificação rigorosa de duplicados
+# Função para realizar sorteio por grupo com verificação rigorosa de duplicados
 def realizar_sorteio_por_grupo(df, quantidade_por_grupo, curso):
     ganhadores_por_grupo = {}
-    
+    total_vagas = sum(quantidade_por_grupo.values())
+
     # Remover candidatos já sorteados em qualquer curso
     df = df[~df['ID'].isin(st.session_state.sorteados_geral['ID'])]
-    
-    # Separar candidatos da ampla concorrência
-    df_ampla_concorrencia = df[df['Cota'] == 'Ampla concorrência']
-    
-    # Sortear para cada grupo exceto a ampla concorrência
-    for grupo, quantidade in quantidade_por_grupo.items():
-        if grupo == 'Ampla concorrência':
-            continue  # Sortearemos a ampla concorrência por último
-            
-        df_grupo = df[df['Cota'] == grupo]
-        total_grupo = len(df_grupo)
-        
-        if total_grupo > 0:
-            quantidade_real = min(quantidade, total_grupo)
-            ganhadores = df_grupo.sample(n=quantidade_real, random_state=random.randint(0, 10000))
-            
-            # Preencher vagas restantes com ampla concorrência, se necessário
-            if quantidade_real < quantidade and not df_ampla_concorrencia.empty:
-                vagas_restantes = quantidade - quantidade_real
-                ganhadores_extra = df_ampla_concorrencia.sample(n=min(vagas_restantes, len(df_ampla_concorrencia)), random_state=random.randint(0, 10000))
-                df_ampla_concorrencia = df_ampla_concorrencia.drop(ganhadores_extra.index)
-                ganhadores = pd.concat([ganhadores, ganhadores_extra])
-            
-            ganhadores_por_grupo[grupo] = ganhadores
-        else:
-            # Preencher com ampla concorrência caso o grupo esteja vazio
-            st.warning(f"Não há candidatos no grupo '{grupo}'. Vagas preenchidas pela ampla concorrência.")
-            if not df_ampla_concorrencia.empty:
-                ganhadores_extra = df_ampla_concorrencia.sample(n=min(quantidade, len(df_ampla_concorrencia)), random_state=random.randint(0, 10000))
-                df_ampla_concorrencia = df_ampla_concorrencia.drop(ganhadores_extra.index)
-                ganhadores_por_grupo[grupo] = ganhadores_extra
 
-    # Sorteio para ampla concorrência para as vagas restantes
-    total_ampla_concorrencia = len(df_ampla_concorrencia)
-    quantidade_ampla = quantidade_por_grupo['Ampla concorrência']
-    quantidade_real = min(quantidade_ampla, total_ampla_concorrencia)
-    
-    if total_ampla_concorrencia > 0:
-        ganhadores_ampla = df_ampla_concorrencia.sample(n=quantidade_real, random_state=random.randint(0, 10000))
-        ganhadores_por_grupo['Ampla concorrência'] = ganhadores_ampla
+    # Separar ampla concorrência para uso posterior
+    df_ampla_concorrencia = df[df['Cota'] == 'Ampla concorrência']
+
+    # Sorteio inicial para cada grupo
+    for grupo, quantidade in quantidade_por_grupo.items():
+        df_grupo = df[df['Cota'] == grupo]
+        
+        if not df_grupo.empty:
+            quantidade_real = min(quantidade, len(df_grupo))
+            sorteados = df_grupo.sample(n=quantidade_real, random_state=random.randint(0, 10000))
+            ganhadores_por_grupo[grupo] = sorteados
+            # Remover os sorteados do pool geral
+            df = df.drop(sorteados.index)
+        else:
+            ganhadores_por_grupo[grupo] = pd.DataFrame(columns=df.columns)
+            st.warning(f"Grupo '{grupo}' sem candidatos suficientes. Vagas serão preenchidas pela ampla concorrência.")
+
+    # Garantir o preenchimento das vagas não ocupadas com ampla concorrência
+    for grupo, quantidade in quantidade_por_grupo.items():
+        sorteados_no_grupo = ganhadores_por_grupo[grupo]
+        vagas_restantes = quantidade - len(sorteados_no_grupo)
+
+        if vagas_restantes > 0 and not df_ampla_concorrencia.empty:
+            sorteados_extra = df_ampla_concorrencia.sample(n=min(vagas_restantes, len(df_ampla_concorrencia)), random_state=random.randint(0, 10000))
+            df_ampla_concorrencia = df_ampla_concorrencia.drop(sorteados_extra.index)
+            ganhadores_por_grupo[grupo] = pd.concat([sorteados_no_grupo, sorteados_extra])
 
     # Unir os sorteados de todos os grupos
-    ganhadores_df = pd.concat(ganhadores_por_grupo.values()).drop_duplicates(subset=['ID'])
-    
-    # Garantir que temos exatamente 27 sorteados preenchendo vagas restantes, se necessário
-    vagas_faltantes = 27 - len(ganhadores_df)
-    if vagas_faltantes > 0:
-        candidatos_restantes = df[~df['ID'].isin(ganhadores_df['ID'])]
-        
-        if not candidatos_restantes.empty:
-            ganhadores_extra = candidatos_restantes.sample(n=min(vagas_faltantes, len(candidatos_restantes)), random_state=random.randint(0, 10000))
-            ganhadores_df = pd.concat([ganhadores_df, ganhadores_extra])
-        else:
-            st.warning("Não há candidatos suficientes para completar o sorteio com 27 ganhadores.")
+    ganhadores_df = pd.concat(ganhadores_por_grupo.values(), ignore_index=True)
 
-    # Adicionar ganhadores à lista global de sorteados
+    # Garantir o preenchimento até atingir o total de 27 vagas
+    vagas_faltantes = total_vagas - len(ganhadores_df)
+    if vagas_faltantes > 0 and not df_ampla_concorrencia.empty:
+        sorteados_extra = df_ampla_concorrencia.sample(n=min(vagas_faltantes, len(df_ampla_concorrencia)), random_state=random.randint(0, 10000))
+        ganhadores_df = pd.concat([ganhadores_df, sorteados_extra], ignore_index=True)
+
+    # Adicionar informações do curso e atualizar a lista global de sorteados
     ganhadores_df['Curso'] = curso
-    st.session_state.sorteados_geral = pd.concat([st.session_state.sorteados_geral, ganhadores_df[['Name', 'ID', 'Cota', 'Curso']]]).drop_duplicates(subset=['ID'])
-    
+    st.session_state.sorteados_geral = pd.concat(
+        [st.session_state.sorteados_geral, ganhadores_df[['Name', 'ID', 'Cota', 'Curso']]],
+        ignore_index=True
+    ).drop_duplicates(subset=['ID'])
+
     return ganhadores_df
+
+
 
 # Função para baixar o arquivo Excel
 def baixar_excel(df, filename):
