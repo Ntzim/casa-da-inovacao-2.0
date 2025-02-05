@@ -89,18 +89,18 @@ st.image('casa-da-inovacao-2.0/imagens/ID_CASA_INOVACAO 1.png')
 
 # Seletores de curso
 curso_selecionado = st.selectbox("Selecione o curso", [
-    'Programação de Aplicativos Teens – Idade: 12 – 17 anos | Turno: Tarde',
-    'Programação de Aplicativos – Idade: 18+ | Turno: Tarde',
-    'Criação de Games kids – Idade: 8 -14 anos| Turno: Manhã',
-    'Criação de Games kids – Idade: 8 -14 anos | Turno: Tarde',
-    'Criação de Games teens – Idade: 15 - 29 anos| Turno: Tarde',
-    'Inclusão Digital – Idade: 50+ | Turno: Manhã',
-    'Introdução à Robótica kids – Idade: kids 8 -14 | Turno: Manhã',
-    'Introdução à Robótica kids – Idade: 8 -14 | Turno: Tarde',
-    'Introdução à Robótica teens – Idade: 15 – 29 anos | Turno: Manhã',
-    'Introdução ao Mundo Digital e Pacote Office – Idade: 18 + | Turno: Noite',
-    'Marketing Digital – Idade: 18+ | Turno: Noite',
-    'Digital Influencer– Idade: 15 – 29 anos | Turno: Tarde',
+    "Programação de Aplicativos – Idade: 12 – 17 anos | Turno: Tarde",
+    "Criação de Games Kids – Idade: 8 - 14 anos | Turno: Manhã",
+    "Criação de Games Kids – Idade: 8 - 14 anos | Turno: Tarde",
+    "Criação de Games Teens – Idade: 15 - 29 anos | Turno: Tarde",
+    "Inclusão Digital – Idade: 50+ | Turno: Manhã",
+    "Inclusão Digital – Idade: 50+ | Turno: Tarde",
+    "Introdução à Robótica Kids – Idade: 8 - 14 anos | Turno: Manhã",
+    "Introdução à Robótica Kids – Idade: 8 - 14 anos | Turno: Tarde",
+    "Introdução à Robótica Teens – Idade: 15 – 29 anos | Turno: Manhã",
+    "Introdução ao Mundo Digital e Pacote Office – Idade: 18+ | Turno: Noite",
+    "Marketing Digital – Idade: 18+ | Turno: Noite",
+    "Digital Influencer – Idade: 15 – 29 anos | Turno: Tarde"
 ])
 
 # Upload do arquivo Excel
