@@ -51,7 +51,7 @@ def baixar_excel(df, filename):
 
 # Interface Streamlit
 st.title("Sorteio Edital | Casa da Inovação")
-st.image('../imagens/ID_CASA_INOVACAO 1.png')
+st.image('casa-da-inovacao-2.0/imagens/ID_CASA_INOVACAO -2.png')
 
 curso_selecionado = st.selectbox("Selecione o curso", [
     "Programação de Aplicativos – Idade: 12 – 17 anos | Turno: Tarde",
