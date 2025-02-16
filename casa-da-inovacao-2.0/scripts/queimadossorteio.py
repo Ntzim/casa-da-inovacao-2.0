@@ -89,7 +89,7 @@ st.image('casa-da-inovacao-2.0/imagens/ID_CASA_INOVACAO 1.png')
 
 # Seletores de curso
 curso_selecionado = st.selectbox("Selecione o curso", [
-    "Programação de Aplicativos – Idade: 12 – 17 anos | Turno: Tarde",
+    "Programação de Aplicativos Teens – Idade: 12 – 17 anos | Turno: Tarde",
     "Criação de Games Kids – Idade: 8 - 14 anos | Turno: Manhã",
     "Criação de Games Kids – Idade: 8 - 14 anos | Turno: Tarde",
     "Criação de Games Teens – Idade: 15 - 29 anos | Turno: Tarde",
